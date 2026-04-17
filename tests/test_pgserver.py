@@ -252,9 +252,83 @@ def tmp_postgres():
     with pgserver.get_server(tmp_pg_data, cleanup_mode='delete') as pg:
         yield pg
 
+def _parse_psql_value(psql_output: str) -> str:
+    """ psql's default text-mode output has three leading lines:
+            header
+            -------
+            <value>
+            (1 row)
+        This helper returns the <value> line stripped, for single-cell queries.
+    """
+    return psql_output.splitlines()[2].strip()
+
 def test_pgvector(tmp_postgres):
-    ret = tmp_postgres.psql("CREATE EXTENSION vector;")
-    assert ret.strip() == "CREATE EXTENSION"
+    """ pgvector extension installs AND basic vector ops work.
+
+    Upstream pgserver bundles pgvector; this test confirms the bundled
+    version (pinned at v0.8.2 in pgbuild/Makefile) actually functions —
+    create a vector column, insert two vectors, and query by the L2
+    distance operator (<->). Just checking CREATE EXTENSION succeeded
+    wouldn't catch e.g. a missing vector.so or ABI mismatch.
+    """
+    tmp_postgres.psql("CREATE EXTENSION vector;")
+    tmp_postgres.psql("CREATE TABLE items (id int, embedding vector(3));")
+    tmp_postgres.psql("INSERT INTO items VALUES (1, '[1,2,3]'), (2, '[4,5,6]');")
+
+    nearest = tmp_postgres.psql(
+        "SELECT id FROM items ORDER BY embedding <-> '[1,2,3]' LIMIT 1;"
+    )
+    assert _parse_psql_value(nearest) == '1'
+
+def test_pg_trgm(tmp_postgres):
+    """ pg_trgm (trigram similarity) — the headline feature of this fork.
+
+    Upstream pgserver does NOT install pg_trgm; our pgbuild/Makefile
+    explicitly builds contrib/pg_trgm into pginstall/. This test is the
+    regression guard for that build step. Verifies both the extension
+    loads and similarity() returns plausible values across three cases:
+    identical, unrelated, and partial-overlap strings.
+    """
+    create_result = tmp_postgres.psql("CREATE EXTENSION pg_trgm;")
+    assert create_result.strip() == "CREATE EXTENSION"
+
+    identical = tmp_postgres.psql("SELECT similarity('foo', 'foo');")
+    assert float(_parse_psql_value(identical)) == pytest.approx(1.0)
+
+    unrelated = tmp_postgres.psql("SELECT similarity('foo', 'zzzzzz');")
+    assert float(_parse_psql_value(unrelated)) == pytest.approx(0.0)
+
+    close_val = float(_parse_psql_value(
+        tmp_postgres.psql("SELECT similarity('hello', 'helo');")
+    ))
+    assert 0.0 < close_val < 1.0
+
+def _declared_postgres_version() -> str:
+    """ Reads POSTGRES_VERSION from pgbuild/Makefile — the single source of
+        truth for which Postgres we intended to build.
+    """
+    import re
+    makefile = Path(__file__).resolve().parent.parent / 'pgbuild' / 'Makefile'
+    match = re.search(r'^POSTGRES_VERSION\s*:?=\s*(\S+)', makefile.read_text(), re.MULTILINE)
+    assert match, f"POSTGRES_VERSION not found in {makefile}"
+    return match.group(1)
+
+def test_postgres_version(tmp_postgres):
+    """ The running server reports the version declared in pgbuild/Makefile.
+
+    Catches the build-system class of bug where the Makefile declares one
+    version but the built binary reports another — stale tarball under
+    pgbuild/, cached pginstall/ surviving `make clean`, etc. Self-syncing:
+    bumping POSTGRES_VERSION in the Makefile (e.g. 18.3 -> 18.4 for a CVE
+    patch) requires no test change.
+    """
+    declared = _declared_postgres_version()
+    reported = _parse_psql_value(tmp_postgres.psql("SHOW server_version;"))
+    assert reported.startswith(declared), (
+        f"Makefile declares POSTGRES_VERSION={declared!r} but running server "
+        f"reports server_version={reported!r}. Likely cause: stale build "
+        f"artifacts under pgbuild/ or src/pgserver/pginstall/. Try `make clean && make build`."
+    )
 
 def test_start_failure_log(caplog):
     """ Test server log contents are shown in python log when failures
