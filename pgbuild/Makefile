@@ -39,7 +39,7 @@ $(INSTALL_PREFIX)/bin/postgres: $(POSTGRES_BLD)/config.status
 postgres: $(INSTALL_PREFIX)/bin/postgres
 
 ### pgvector
-PGVECTOR_TAG := v0.6.2
+PGVECTOR_TAG := v0.8.2
 PGVECTOR_URL := https://github.com/pgvector/pgvector/archive/refs/tags/$(PGVECTOR_TAG).tar.gz
 PGVECTOR_DIR := pgvector-$(PGVECTOR_TAG)
 
