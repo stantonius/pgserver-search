@@ -1,5 +1,15 @@
 # pgserver-trgm
 
+> **Disclaimer — this was vibe-coded** (in [Simon Willison's sense](https://simonwillison.net/2025/Mar/19/vibe-coding/):
+> I kept prompting an LLM until it worked, without reviewing the generated
+> code line-by-line). The only reason this exists is that I wanted
+> `pg_trgm` available on a small embedded Postgres instance and the
+> upstream package doesn't ship with it. Use accordingly: treat it as
+> a convenience wrapper, not audited infrastructure. If you need
+> production-grade assurance, read the diff against
+> [orm011/pgserver](https://github.com/orm011/pgserver) yourself or
+> build from source (see below).
+
 A self-contained Postgres server for Python applications, with the
 `pg_trgm` trigram-matching extension and `pgvector` bundled in.
 
