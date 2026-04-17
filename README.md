@@ -2,12 +2,18 @@
 
 > **Disclaimer — this was vibe-coded** (in [Simon Willison's sense](https://simonwillison.net/2025/Mar/19/vibe-coding/):
 > I kept prompting an LLM until it worked, without reviewing the generated
-> code line-by-line). The only reason this exists is that I wanted
-> `pg_trgm` available on a small embedded Postgres instance and the
-> upstream package doesn't ship with it. Use accordingly: treat it as
-> a convenience wrapper, not audited infrastructure. If you need
-> production-grade assurance, read the diff against
-> [orm011/pgserver](https://github.com/orm011/pgserver) yourself or
+> code line-by-line). **Intended use:** throwaway Postgres instances in
+> Jupyter notebooks and quick test scripts — a richer alternative to
+> SQLite for when you need real Postgres features like `pg_trgm`
+> trigram similarity or `pgvector` vector search.
+>
+> **Not intended for production-parity testing.** Embedded Postgres
+> differs from your hosted/RDS Postgres in build flags, OS libraries
+> (glibc / ICU collation), default `postgresql.conf`, and available
+> extensions. If you need audited infrastructure or prod-equivalent
+> integration tests, use [testcontainers](https://testcontainers.com/)
+> or a staging Postgres instead — or at minimum, read the diff
+> against [orm011/pgserver](https://github.com/orm011/pgserver) and
 > build from source (see below).
 
 A self-contained Postgres server for Python applications, with the
@@ -57,7 +63,7 @@ git clone https://github.com/stantonius/pgserver-trgm.git
 cd pgserver-trgm
 
 # 2. Audit what will run during the build
-less pgbuild/Makefile   # downloads postgres-16.2.tar.gz from ftp.postgresql.org
+less pgbuild/Makefile   # downloads postgres-18.3.tar.gz from ftp.postgresql.org
 less setup.py           # hooks `make` into setuptools' build_py
 less pyproject.toml
 
@@ -75,7 +81,7 @@ make install-wheel
 ```
 
 The `make install-wheel` target runs `make build` (downloads Postgres
-16.2 source, configures, compiles, installs `pg_trgm` + `pgvector`
+18.3 source, configures, compiles, installs `pg_trgm` + `pgvector`
 into the package layout) and then `pip install dist/*.whl`. Takes
 ~5–10 minutes the first time; everything is cached after that.
 
