@@ -1,4 +1,4 @@
-# pgserver-trgm
+# pgserver-search-tools
 
 > **Disclaimer — this was vibe-coded** (in [Simon Willison's sense](https://simonwillison.net/2025/Mar/19/vibe-coding/):
 > I kept prompting an LLM until it worked, without reviewing the generated
@@ -46,11 +46,11 @@ Pre-built wheels for Linux, macOS (x86_64 + arm64), and Windows are
 attached to each tagged release:
 
 ```bash
-pip install https://github.com/stantonius/pgserver-trgm/releases/download/v0.1.4/pgserver_trgm-0.1.4-<tag>.whl
+pip install https://github.com/stantonius/pgserver-search-tools/releases/download/v0.1.4/pgserver_search_tools-0.1.4-<tag>.whl
 ```
 
 Pick the wheel matching your platform/Python version from the
-[releases page](https://github.com/stantonius/pgserver-trgm/releases).
+[releases page](https://github.com/stantonius/pgserver-search-tools/releases).
 
 ### From source (security-conscious install)
 
@@ -59,8 +59,8 @@ of trusting a binary wheel, do this:
 
 ```bash
 # 1. Clone and inspect
-git clone https://github.com/stantonius/pgserver-trgm.git
-cd pgserver-trgm
+git clone https://github.com/stantonius/pgserver-search-tools.git
+cd pgserver-search-tools
 
 # 2. Audit what will run during the build
 less pgbuild/Makefile   # downloads postgres-18.3.tar.gz from ftp.postgresql.org
@@ -88,7 +88,7 @@ into the package layout) and then `pip install dist/*.whl`. Takes
 ## Usage
 
 The Python import name stays `pgserver` (so existing code keeps
-working) — only the distribution name is `pgserver-trgm`.
+working) — only the distribution name is `pgserver-search-tools`.
 
 ```python
 import pgserver, tempfile
@@ -113,7 +113,7 @@ Same as upstream pgserver — PostgreSQL license (MIT-family). See
 - `setup.py` — hooks `make build` into setuptools so source
   installs (`pip install git+https://...`) produce a working wheel
   automatically.
-- `pyproject.toml` — package renamed to `pgserver-trgm`; adds
+- `pyproject.toml` — package renamed to `pgserver-search-tools`; adds
   `include-package-data` and a `pginstall/**` glob so the built
   binaries are shipped inside the wheel.
 - `.github/workflows/build-and-test.yml` — tagged releases upload

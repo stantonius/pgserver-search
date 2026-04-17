@@ -1,11 +1,11 @@
 [project]
-name = "pgserver-trgm" # Required
+name = "pgserver-search-tools" # Required
 version = "0.1.4"  # Required
 description = "Self-contained Postgres (with pg_trgm + pgvector) for Python applications" # Required
 readme = "README.md" # Optional
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
-urls = {repository = "https://github.com/stantonius/pgserver-trgm", upstream = "https://github.com/orm011/pgserver"}
+urls = {repository = "https://github.com/stantonius/pgserver-search-tools", upstream = "https://github.com/orm011/pgserver"}
 authors = [
     { name="Oscar Moll", email="orm@csail.mit.edu" },
     { name="stantonius", email="26337267+stantonius@users.noreply.github.com" },
