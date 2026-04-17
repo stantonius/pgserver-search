@@ -46,7 +46,7 @@ jobs:
       - name: Restore postgres build from cache
         if: ${{ matrix.os != 'ubuntu-latest' }}
         id: restore-postgres
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         env:
           cache-name: cache-postgres
         with:
@@ -65,7 +65,7 @@ jobs:
       - name: Save postgres build
         if: ${{ matrix.os != 'ubuntu-latest' && ! steps.restore-postgres.outputs.cache-hit }}
         id: cache-postgres
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         env:
           cache-name: cache-postgres
         with:
@@ -83,7 +83,7 @@ jobs:
       - name: Save postgres build
         if: ${{ matrix.os == 'ubuntu-latest' && ! steps.restore-postgres.outputs.cache-hit }}
         id: cache-postgres2
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         env:
           cache-name: cache-postgres
         with:
@@ -92,10 +92,10 @@ jobs:
            src/pgserver/pginstall
           key: ${{ runner.os }}-${{ runner.arch }}-build-${{ env.cache-name }}-${{
             hashFiles('Makefile', 'pgbuild/Makefile', '.github/workflows/build-and-test.yml') }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: wheelhouse/*.whl
-          name: python-package-distributions
+          name: python-package-distributions-${{ matrix.os }}-${{ matrix.arch }}
   publish-to-release:
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     name: Upload wheels to GitHub Release
@@ -105,10 +105,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: python-package-distributions
+          pattern: python-package-distributions-*
           path: dist/
+          merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*.whl
