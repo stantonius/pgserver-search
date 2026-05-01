@@ -3,7 +3,7 @@ INSTALL_PREFIX := $(shell pwd)/../src/pgserver/pginstall/
 BUILD := $(shell pwd)/pgbuild/
 
 .PHONY: all
-all: pgvector pg_trgm postgres
+all: pgvector pg_trgm btree_gist postgres
 
 ### postgres
 POSTGRES_VERSION := 18.3
@@ -73,6 +73,16 @@ $(INSTALL_PREFIX)/lib/pg_trgm.so: $(INSTALL_PREFIX)/bin/postgres
 
 .PHONY: pg_trgm
 pg_trgm: postgres $(INSTALL_PREFIX)/lib/pg_trgm.so
+
+### contrib/btree_gist
+# btree_gist enables GiST operator classes for scalar types and is commonly
+# paired with range types (eg tstzrange) for exclusion constraints.
+$(INSTALL_PREFIX)/lib/btree_gist.so: $(INSTALL_PREFIX)/bin/postgres
+	unset MAKELEVEL && unset MAKEFLAGS && unset MFLAGS && $(MAKE) -C $(POSTGRES_BLD)/contrib/btree_gist -j
+	unset MAKELEVEL && unset MAKEFLAGS && unset MFLAGS && $(MAKE) -C $(POSTGRES_BLD)/contrib/btree_gist install
+
+.PHONY: btree_gist
+btree_gist: postgres $(INSTALL_PREFIX)/lib/btree_gist.so
 
 ### other
 .PHONY: clean clean-all

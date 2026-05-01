@@ -303,6 +303,40 @@ def test_pg_trgm(tmp_postgres):
     ))
     assert 0.0 < close_val < 1.0
 
+def test_btree_gist_tstzrange_exclusion(tmp_postgres):
+    """ btree_gist installs and supports mixed scalar+range exclusion constraints.
+
+    A practical tstzrange use-case is "no overlapping bookings per room":
+    EXCLUDE USING gist (room_id WITH =, slot WITH &&). The room_id GiST opclass
+    comes from btree_gist, while tstzrange overlap uses built-in range ops.
+    """
+    create_result = tmp_postgres.psql("CREATE EXTENSION btree_gist;")
+    assert create_result.strip() == "CREATE EXTENSION"
+
+    tmp_postgres.psql("""
+        CREATE TABLE bookings (
+            room_id int NOT NULL,
+            slot tstzrange NOT NULL,
+            EXCLUDE USING gist (room_id WITH =, slot WITH &&)
+        );
+    """)
+    tmp_postgres.psql("""
+        INSERT INTO bookings(room_id, slot)
+        VALUES (1, tstzrange('2026-01-01 10:00+00', '2026-01-01 11:00+00', '[)'));
+    """)
+
+    with pytest.raises(subprocess.CalledProcessError):
+        tmp_postgres.psql("""
+            INSERT INTO bookings(room_id, slot)
+            VALUES (1, tstzrange('2026-01-01 10:30+00', '2026-01-01 11:30+00', '[)'));
+        """)
+
+    # different room is allowed even with overlapping range
+    tmp_postgres.psql("""
+        INSERT INTO bookings(room_id, slot)
+        VALUES (2, tstzrange('2026-01-01 10:30+00', '2026-01-01 11:30+00', '[)'));
+    """)
+
 def _declared_postgres_version() -> str:
     """ Reads POSTGRES_VERSION from pgbuild/Makefile — the single source of
         truth for which Postgres we intended to build.
