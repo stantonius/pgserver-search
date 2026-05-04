@@ -1,7 +1,7 @@
 [project]
 name = "pgserver-search" # Required
-version = "0.1.5"  # Required
-description = "Self-contained Postgres (with pg_trgm + pgvector) for Python applications" # Required
+version = "0.1.6"  # Required
+description = "Self-contained Postgres (with pg_trgm, pgvector, and btree_gist) for Python applications" # Required
 readme = "README.md" # Optional
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
@@ -10,7 +10,7 @@ authors = [
     { name="Oscar Moll", email="orm@csail.mit.edu" },
     { name="stantonius", email="26337267+stantonius@users.noreply.github.com" },
 ]
-keywords = ["postgresql", "pgvector", "pg_trgm", "pgserver", "rag"]
+keywords = ["postgresql", "pgvector", "pg_trgm", "btree_gist", "pgserver", "rag"]
 dependencies = [
     "fasteners>=0.19",
     "platformdirs>=4.0.0",

@@ -303,39 +303,38 @@ def test_pg_trgm(tmp_postgres):
     ))
     assert 0.0 < close_val < 1.0
 
-def test_btree_gist_tstzrange_exclusion(tmp_postgres):
-    """ btree_gist installs and supports mixed scalar+range exclusion constraints.
-
-    A practical tstzrange use-case is "no overlapping bookings per room":
-    EXCLUDE USING gist (room_id WITH =, slot WITH &&). The room_id GiST opclass
-    comes from btree_gist, while tstzrange overlap uses built-in range ops.
-    """
+def test_btree_gist_supports_tstzrange_search_filters(tmp_postgres):
+    """ btree_gist installs and supports a scalar+tstzrange search filter index. """
     create_result = tmp_postgres.psql("CREATE EXTENSION btree_gist;")
     assert create_result.strip() == "CREATE EXTENSION"
 
     tmp_postgres.psql("""
-        CREATE TABLE bookings (
-            room_id int NOT NULL,
-            slot tstzrange NOT NULL,
-            EXCLUDE USING gist (room_id WITH =, slot WITH &&)
+        CREATE TABLE search_results (
+            source_id int NOT NULL,
+            chunk_id int NOT NULL,
+            visible_during tstzrange NOT NULL
         );
     """)
     tmp_postgres.psql("""
-        INSERT INTO bookings(room_id, slot)
-        VALUES (1, tstzrange('2026-01-01 10:00+00', '2026-01-01 11:00+00', '[)'));
+        CREATE INDEX search_results_time_filter_idx
+        ON search_results
+        USING gist (source_id, visible_during);
     """)
-
-    with pytest.raises(subprocess.CalledProcessError):
-        tmp_postgres.psql("""
-            INSERT INTO bookings(room_id, slot)
-            VALUES (1, tstzrange('2026-01-01 10:30+00', '2026-01-01 11:30+00', '[)'));
-        """)
-
-    # different room is allowed even with overlapping range
     tmp_postgres.psql("""
-        INSERT INTO bookings(room_id, slot)
-        VALUES (2, tstzrange('2026-01-01 10:30+00', '2026-01-01 11:30+00', '[)'));
+        INSERT INTO search_results(source_id, chunk_id, visible_during)
+        VALUES
+            (1, 101, tstzrange('2026-01-01 10:00+00', '2026-01-01 11:00+00', '[)')),
+            (1, 102, tstzrange('2026-01-01 12:00+00', '2026-01-01 13:00+00', '[)')),
+            (2, 201, tstzrange('2026-01-01 10:30+00', '2026-01-01 11:30+00', '[)'));
     """)
+
+    filtered_chunk = tmp_postgres.psql("""
+        SELECT chunk_id
+        FROM search_results
+        WHERE source_id = 1
+            AND visible_during && tstzrange('2026-01-01 10:30+00', '2026-01-01 10:45+00', '[)');
+    """)
+    assert _parse_psql_value(filtered_chunk) == '101'
 
 def _declared_postgres_version() -> str:
     """ Reads POSTGRES_VERSION from pgbuild/Makefile — the single source of
